@@ -1,0 +1,9 @@
+pyautogui
+pywinauto
+pillow
+psutil
+mouse
+pydirectinput
+sneakysnek
+redis
+pydantic
