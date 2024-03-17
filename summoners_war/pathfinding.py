@@ -42,9 +42,11 @@ class NodeMap:
 	edges_forward : dict[str, list[str]] = field(default_factory=dict)
 	edges_reverse : dict[str, list[str]] = field(default_factory=dict)
 	cache : dict[str, list[str]] = field(default_factory=dict)
+	unidirection : bool = field(default=False)
 
-	def __init__( self : NodeMap, nodes : list[Node] ) -> NodeMap:
+	def __init__( self : NodeMap, nodes : list[Node], unidirection : bool = False ) -> NodeMap:
 		self.nodes = nodes
+		self.unidirection = unidirection
 		self.rebuild()
 
 	def __repr__(self) -> str:
@@ -141,7 +143,8 @@ class NodeMap:
 			active_node : Node = self.id_map[active_id]
 			items : list[str] = []
 			items.extend( self.edges_forward[active_id] ) # forward traversing
-			items.extend( self.edges_reverse[active_id] ) # backward traversing
+			if self.unidirection == True: # backward traversing (unidirectional)
+				items.extend( self.edges_reverse[active_id] )
 			for point_id in items:
 				point : Node = self.id_map[point_id]
 				cost : int | float = self.get_cost( active_node, point, costTable.get(point_id) or 1, start_node, goal_node )
@@ -177,14 +180,14 @@ if __name__ == '__main__':
 	# (0 -> 1 -> 3), (0 -> 2 -> 4 -> 5)
 	nodes : list[Node] = [
 		Node(id='0', root=True, outputs=['1', '2']),
-		Node(id='1', outputs=['3']),
-		Node(id='2', outputs=['4']),
-		Node(id='3', outputs=[]),
-		Node(id='4', outputs=['5']),
-		Node(id='5', outputs=[]),
+		Node(id='1', outputs=['3', '0']),
+		Node(id='2', outputs=['4', '0']),
+		Node(id='3', outputs=['1']),
+		Node(id='4', outputs=['5', '2']),
+		Node(id='5', outputs=['4']),
 	]
 
-	mapping = NodeMap(nodes=nodes)
+	mapping = NodeMap(nodes=nodes, unidirection=False)
 	print(mapping)
 
 	# forward traversing
@@ -192,5 +195,6 @@ if __name__ == '__main__':
 	print([n.id for n in path])
 
 	# backward traversing
+	# (should fail without unidirection or explicit output back to input nodes from B to A when A traverses to B)
 	path : list[Node] | None = mapping.pathfind( '5', '0' )
 	print([n.id for n in path])
