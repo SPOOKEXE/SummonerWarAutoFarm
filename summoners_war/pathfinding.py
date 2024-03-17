@@ -23,6 +23,7 @@ class Node:
 	id : str
 	root : bool = False
 	depth : int = field(default=0)
+	inputs : list[str] = field(default_factory=list)
 	outputs : list[str] = field(default_factory=list)
 	data : Any = field(default=None)
 
@@ -38,7 +39,8 @@ class Node:
 class NodeMap:
 	nodes : list[Node] = field(default_factory=list)
 	id_map : dict[str, Node] = field(default_factory=dict)
-	edges : dict[str, list[str]] = field(default_factory=dict)
+	edges_forward : dict[str, list[str]] = field(default_factory=dict)
+	edges_reverse : dict[str, list[str]] = field(default_factory=dict)
 	cache : dict[str, list[str]] = field(default_factory=dict)
 
 	def __init__( self : NodeMap, nodes : list[Node] ) -> NodeMap:
@@ -46,10 +48,10 @@ class NodeMap:
 		self.rebuild()
 
 	def __repr__(self) -> str:
-		return f'NodeMap({self.edges})'
+		return f'NodeMap({self.edges_forward}, {self.edges_reverse})'
 
 	def __str__(self) -> str:
-		return f'NodeMap({self.edges})'
+		return f'NodeMap({self.edges_forward}, {self.edges_reverse})'
 
 	def rebuild( self ) -> None:
 		'''
@@ -59,7 +61,8 @@ class NodeMap:
 		- validate all node outputs exist and there is only one root.
 		'''
 		self.id_map = dict()
-		self.edges = dict()
+		self.edges_forward = dict()
+		self.edges_reverse = dict()
 		self.cache = dict()
 
 		frontier : list[Node] = []
@@ -68,7 +71,7 @@ class NodeMap:
 
 		for node in nodes:
 			self.id_map[node.id] = node
-			self.edges[node.id] = node.outputs
+			self.edges_forward[node.id] = node.outputs
 			if node.root is True:
 				frontier.append(node)
 				if hasRoot is True:
@@ -91,11 +94,16 @@ class NodeMap:
 					output_node : Node | None = self.id_map.get(output_id)
 					if output_node == None:
 						raise ValueError(f'Node {item.id} has a non-existent output {output_id}')
+					if not item.id in output_node.inputs:
+						output_node.inputs.append(item.id)
 					# skip already searched ones
 					if not output_node in searched:
 						searched.append(output_node)
 						frontier.append(output_node)
 			depth += 1
+
+		for node in nodes:
+			self.edges_reverse[node.id] = node.inputs
 
 	def node_distance( self : NodeMap, node_a : Node, node_b : Node ) -> float | int:
 		return abs(node_b.depth - node_a.depth)
@@ -106,7 +114,8 @@ class NodeMap:
 	def hash_path( self : NodeMap, start : Node, goal : Node ) -> str:
 		return str(start.id) + '|' + str(goal.id)
 
-	def a_star_pathfind( self : NodeMap, start_id : str, goal_id : str ) -> list[Node] | None:
+	def pathfind( self : NodeMap, start_id : str, goal_id : str ) -> list[Node] | None:
+		'''A* Pathfinding Implementation for directional graphs.'''
 		start_node : Node = self.id_map[start_id]
 		goal_node : Node = self.id_map[goal_id]
 
@@ -122,13 +131,18 @@ class NodeMap:
 		active_id : str = None
 
 		# algorithm
+		steps = 0
 		while len(frontier) > 0:
+			steps += 1
 			if goal_id in frontier:
 				active_id : str = goal_id
 				break
 			active_id : str = frontier.pop(0)
 			active_node : Node = self.id_map[active_id]
-			for point_id in self.edges[active_id]:
+			items : list[str] = []
+			items.extend( self.edges_forward[active_id] ) # forward traversing
+			items.extend( self.edges_reverse[active_id] ) # backward traversing
+			for point_id in items:
 				point : Node = self.id_map[point_id]
 				cost : int | float = self.get_cost( active_node, point, costTable.get(point_id) or 1, start_node, goal_node )
 				if cameFrom.get(point_id) != None:
@@ -159,6 +173,7 @@ class NodeMap:
 
 if __name__ == '__main__':
 
+	# create nodes
 	# (0 -> 1 -> 3), (0 -> 2 -> 4 -> 5)
 	nodes : list[Node] = [
 		Node(id='0', root=True, outputs=['1', '2']),
@@ -172,5 +187,10 @@ if __name__ == '__main__':
 	mapping = NodeMap(nodes=nodes)
 	print(mapping)
 
-	path : list[Node] | None = mapping.a_star_pathfind( '0', '5' )
-	print(path)
+	# forward traversing
+	path : list[Node] | None = mapping.pathfind( '0', '5' )
+	print([n.id for n in path])
+
+	# backward traversing
+	path : list[Node] | None = mapping.pathfind( '5', '0' )
+	print([n.id for n in path])

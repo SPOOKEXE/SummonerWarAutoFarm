@@ -7,6 +7,6 @@ class NodeIdentifiers:
 
 ### CONSTANT ###
 
-# UI_NODE_MAPPING : NodeMap = NodeMap(nodes=[
-# 	Node( id="island_view", outputs=[""] )
-# ])
+UI_NODE_MAPPING : NodeMap = NodeMap(nodes=[
+	Node( id="island_view", outputs=[""] )
+])
