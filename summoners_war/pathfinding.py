@@ -5,20 +5,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 @dataclass
-class Vector2:
-	x : int = field(default=0)
-	y : int = field(default=0)
-
-	def __repr__(self) -> str:
-		return f'Vector2({self.x}, {self.y})'
-
-	def __str__(self) -> str:
-		return f'Vector2({self.x}, {self.y})'
-
-	def __hash__(self) -> str:
-		return hash((self.x, self.y))
-
-@dataclass
 class Node:
 	id : str
 	root : bool = False
@@ -174,7 +160,7 @@ class NodeMap:
 		# no path to goal
 		return None
 
-if __name__ == '__main__':
+def test_main() -> None:
 
 	# create nodes
 	# (0 -> 1 -> 3), (0 -> 2 -> 4 -> 5)
@@ -198,3 +184,6 @@ if __name__ == '__main__':
 	# (should fail without unidirection or explicit output back to input nodes from B to A when A traverses to B)
 	path : list[Node] | None = mapping.pathfind( '5', '0' )
 	print([n.id for n in path])
+
+if __name__ == '__main__':
+	test_main()
